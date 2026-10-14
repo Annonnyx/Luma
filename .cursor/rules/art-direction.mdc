@@ -1,0 +1,46 @@
+---
+description: Direction artistique de Lume (marque, palette, typographie, mise en page, ton). À respecter à chaque étape.
+alwaysApply: true
+---
+
+# Direction artistique — Lume
+
+Lume fabrique des lunettes AR qui ressemblent d'abord à de belles lunettes classiques.
+Le site ne doit jamais « crier tech » : le sobre vient de ce qu'on ne montre pas.
+
+## Récit chromatique
+- **Dehors = réalité** (Hero, CTA final) : fond `mineral`, texte `graphite`.
+- **Dedans = l'interface** (scènes 2 à 7, après le passage dans la lentille) : fond `smoke`, texte `mineral`.
+- Le passage clair → sombre se fait *par la lentille* (scène 2), jamais par un fondu de section.
+- Chaque `<section>` déclare `data-theme="light" | "dark"` (le header s'y adapte).
+
+## Palette (tokens Tailwind dans `src/app/globals.css`, ne jamais coder un hex en dur)
+| Token | Hex | Usage |
+|---|---|---|
+| `mineral` | `#E2E4E0` | Fond clair (verre minéral, légère teinte de tranche de verre) |
+| `graphite` | `#17191A` | Texte sur clair |
+| `smoke` | `#0D1012` | Fond sombre (verre fumé) |
+| `fog` | `#5D5F62` | Texte secondaire sur clair (≥ 4.5:1) |
+| `mist` | `#9A9CA0` | Texte secondaire sur sombre (≥ 4.5:1) |
+| `coat` | `#B5D3BF` | **Seul accent** : reflet du traitement antireflet. Interface AR, reflets, focus sur sombre |
+| `coat-ink` | `#36604A` | Variante de l'accent quand il faut du contraste sur clair (focus, rare) |
+
+- L'accent est rare : un reflet, une ligne d'interface, un état actif. Jamais un aplat, jamais un dégradé décoratif.
+- Pas d'ombres grises génériques, pas de cartes arrondies en série, pas de néon.
+- Seule exception arrondie : les fenêtres AR (`glass-pane`), en verre fumé pour que le texte reste lisible sur n'importe quel décor. Trois au plus à l'écran.
+
+## Typographie : une seule famille, Archivo (variable `wght` 100–900, `wdth` 62–125)
+- La largeur est l'outil de hiérarchie : titres **larges et fins** (horizontaux comme une monture), texte courant en largeur normale.
+- Classes : `type-display` (titre héro), `type-title` (titres de scène), `type-heading` (titre dans une fenêtre AR), `type-lead`, `type-body`, `type-caption`.
+- Casse phrase partout. Pas de capitales espacées, pas d'eyebrow au-dessus des titres, pas de mot isolé en italique/couleur dans un titre.
+- Lignes < 70 caractères pour le texte courant.
+
+## Mise en page
+- Beaucoup de vide. Alignement à gauche par défaut, grille 12 colonnes, marges `--gutter`.
+- Un seul élément mémorable par scène ; tout le reste est calme.
+- Les lunettes (ou l'objet de la scène) sont le sujet, le texte les accompagne.
+
+## Ton (copie en français)
+- Phrases courtes, verbes simples, aucun jargon (« fenêtre », pas « widget spatial »).
+- On décrit ce que la personne voit ou fait, on ne vend pas.
+- Pas de « → » dans les liens, pas de méta-chaînes « A · B · C », pas de « MOT — fragment ».

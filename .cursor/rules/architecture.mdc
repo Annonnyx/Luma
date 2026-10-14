@@ -1,0 +1,47 @@
+---
+description: Architecture du code, performance (vidéos, images, 3D), mobile et accessibilité pour le site Lume.
+globs: src/**/*,public/**/*,next.config.ts
+alwaysApply: false
+---
+
+# Architecture, performance, accessibilité
+
+## Structure
+- `src/sections/` : **une scène = un composant** (`Hero`, `LensPassage`, `FloatingWindows`, `SpatialMemory`, `ContactLens`, `Ring`, `Companion`, `FinalCta`). L'ordre vit dans `src/app/page.tsx`. Les composants de séquence (`Prologue`) orchestrent plusieurs scènes passées en `children` sans les absorber, ce qui garde les scènes statiques en Server Components.
+- `src/components/ar/` : éléments de l'interface AR montrée dans les scènes.
+  - `Glance` : petits repères posés dans le verre (scène 2), verre suggéré par bordure et fond translucides, sans `backdrop-filter`.
+  - `GlassWindow` + `windows.tsx` (`RecipeWindow`, `MessagesWindow`, `RouteWindow`, `ListWindow`) et `TimerWindow` : vraies fenêtres en verre (utilitaire `glass-pane`, avec `backdrop-filter`). Toutes prennent `GlassWindowPlacement` (`className`, `style`, `depth`, `windowId`, `controls` pour une poignée). Contenu dans `FLOATING_WINDOWS_CONTENT` et `SPATIAL_MEMORY_CONTENT`. Le minuteur tourne vraiment, à partir du moment où il est vu.
+  - `HandoffRing` : anneau de lumière identique scènes 5 et 6 (le bord de l'iris, puis la bague).
+- `src/components/product/` : `Glasses` (Hero), `Band` (bague, même cercle que `HandoffRing`). `Band` est dessinée depuis sa pose (`poseBand` : inclinaison, rotation, remplissage) : face, paroi et intérieur sont les contours exacts d'un anneau incliné, pas des calques 3D.
+- `src/components/world/` : décors dessinés en code (`Street`, `Room`, `Kitchen`, `Eye`, `Shelf`, `RestingGlasses`) qui tiennent lieu de plan vidéo. `aria-hidden`. Couleurs et ids SVG par `paint.ts`. Un décor que la caméra traverse s'éteint dans l'ombre à ses bords.
+- `src/lib/reveal.ts` : effacement de l'interface sous le curseur (scène 6), en WebGL 2 ; la trace est un champ basse résolution, le shader en fait un bord net. Sans WebGL 2, pas d'effacement. `src/lib/rasterize.ts` copie un décor SVG en image (variables de couleur résolues) pour ce genre d'effet.
+- `src/lib/familiar.ts` : le compagnon (scène 7), dessiné en canvas 2D avec ses ressorts ; la scène ne lui donne qu'une intention (où aller, où regarder, éveillé, content).
+- `src/components/ui/TitleLines` : titre dont les retours à la ligne (`\n` dans `scenes.ts`) sont voulus, sur toutes les tailles.
+- `src/lib/cinematic.ts` : `holdCinematic()`, classe `cinematic` comptée (voir la règle mouvement).
+- `src/lib/spatial-memory.ts` : positions des fenêtres de la scène 4 dans `localStorage` (fractions du décor, une clé par disposition `wide` / `narrow`, données relues et validées).
+- `src/app/layout.tsx` : script inline dans `<head>` (masque d'intro, classe `cinematic`). Ce qui doit tourner avant le premier rendu s'écrit là : `next/script`, même `beforeInteractive`, met le code inline en file d'attente jusqu'au runtime Next.
+- `src/content/scenes.ts` : registre des scènes (id d'ancre, titre, thème, assets attendus). Le texte des scènes y vit, pas en dur dans le JSX.
+- `src/components/` : briques réutilisables (`ui/`, `product/`, `layout/`, `providers/`).
+- `src/lib/` : `gsap.ts` (plugins), `motion.ts` (easings/durées). `src/hooks/` : hooks client.
+- Server Components par défaut ; `"use client"` seulement là où il y a de l'animation ou de l'interaction.
+- Next.js 16 : lire `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`).
+
+## Développement
+- Avec Turbopack, une modification de `src/app/globals.css` peut rester invisible (CSS servie périmée, utilitaire absent). `touch` ne suffit pas : refaire une vraie modification du fichier puis recharger, ou relancer `next dev` après `rm -rf .next/dev`.
+
+## Performance (60 fps visés)
+- Vidéos : `public/media/<scene>/`, MP4 H.264 + WebM (AV1/VP9), une version desktop et une version mobile, poster AVIF.
+  Pour le scrub : encoder avec une keyframe par frame (`-g 1`) ou utiliser une séquence d'images. `preload="none"`, chargement quand la scène approche (IntersectionObserver), pause hors écran.
+- Images : `next/image`, AVIF/WebP, `sizes` renseigné, `priority` seulement pour le Hero.
+- 3D (R3F) : chargée en `next/dynamic` sans SSR, GLB compressés (Draco/Meshopt), `frameloop="demand"` quand la scène est statique, démontée hors écran.
+- Pas de bibliothèque lourde pour un effet faisable en CSS/SVG.
+
+## Mobile
+- Version allégée mais soignée : mêmes scènes, plans vidéo recadrés (portrait), interactions au toucher, pas de suivi de curseur.
+- Utiliser `svh`/`dvh`, jamais `vh` seul pour les plans plein écran.
+
+## Accessibilité
+- Contrastes AA minimum (les tokens de couleur le garantissent si on respecte les paires prévues).
+- Navigation clavier complète : lien d'évitement, focus visible (`:focus-visible`, anneau `coat`/`coat-ink`), démos utilisables au clavier.
+- Chaque section a un titre (`aria-labelledby`), les visuels décoratifs ont `aria-hidden`, les vidéos ont un poster et pas de son.
+- Les démos interactives annoncent les changements importants (`aria-live="polite"`).

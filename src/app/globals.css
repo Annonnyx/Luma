@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+/* Set on <html> by scroll sequences once JS runs and motion is allowed.
+   Without it (no JS, reduced motion) every scene falls back to normal flow. */
+@custom-variant cinematic (&:where(.cinematic *));
+
+/* ---------------------------------------------------------------------------
+   Tokens
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --color-mineral: #e2e4e0;
+  --color-graphite: #17191a;
+  --color-smoke: #0d1012;
+  --color-fog: #5d5f62;
+  --color-mist: #9a9ca0;
+  --color-coat: #b5d3bf;
+  --color-coat-ink: #36604a;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-power3: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  --breakpoint-3xl: 112rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  /* Contextual colours, resolved by the nearest [data-theme] */
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+}
+
+:root {
+  --gutter: clamp(1.25rem, 3.2vw, 3rem);
+  --header-h: 4.5rem;
+  /* The ring of light scene 5 hands to scene 6: the same box in both. */
+  --handoff-ring: min(56svh, 80vw);
+  /* Last frame of scene 6 / first of scene 7: a small coat spark. */
+  --handoff-spark: 2.75rem;
+  color-scheme: light;
+}
+
+:root,
+[data-theme="light"] {
+  --surface: var(--color-mineral);
+  --ink: var(--color-graphite);
+  --ink-muted: var(--color-fog);
+  --line: color-mix(in oklab, var(--color-graphite) 14%, transparent);
+  --focus: var(--color-coat-ink);
+}
+
+[data-theme="dark"] {
+  --surface: var(--color-smoke);
+  --ink: var(--color-mineral);
+  --ink-muted: var(--color-mist);
+  --line: color-mix(in oklab, var(--color-mineral) 14%, transparent);
+  --focus: var(--color-coat);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    background: var(--color-mineral);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-stretch: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-kerning: normal;
+    font-feature-settings: "kern", "liga", "calt";
+  }
+
+  ::selection {
+    background: var(--color-coat);
+    color: var(--color-graphite);
+  }
+
+  :focus-visible {
+    outline: 1.5px solid var(--focus);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  [tabindex="-1"]:focus {
+    outline: none;
+  }
+
+  section[data-theme] {
+    background-color: var(--surface);
+    color: var(--ink);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Type scale — one family (Archivo), hierarchy through size, weight and width
+   --------------------------------------------------------------------------- */
+
+@utility type-display {
+  font-size: clamp(2.75rem, min(6.2vw, 12.5svh), 7.5rem);
+  font-weight: 250;
+  font-stretch: 104%;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  font-feature-settings: "kern", "liga", "ss01";
+
+  @media (width >= 48rem) {
+    font-stretch: 116%;
+  }
+}
+
+@utility type-title {
+  font-size: clamp(2.125rem, 4.4vw, 4.75rem);
+  font-weight: 280;
+  font-stretch: 104%;
+  line-height: 1;
+  letter-spacing: -0.028em;
+
+  @media (width >= 48rem) {
+    font-stretch: 112%;
+  }
+}
+
+@utility type-lead {
+  font-size: clamp(1.0625rem, 1.25vw, 1.3125rem);
+  font-weight: 380;
+  font-stretch: 100%;
+  line-height: 1.45;
+  letter-spacing: -0.006em;
+}
+
+@utility type-body {
+  font-size: 1rem;
+  font-weight: 400;
+  font-stretch: 100%;
+  line-height: 1.6;
+}
+
+@utility type-caption {
+  font-size: 0.8125rem;
+  font-weight: 460;
+  font-stretch: 100%;
+  line-height: 1.4;
+  letter-spacing: 0.004em;
+}
+
+/* Titles inside interface windows */
+@utility type-heading {
+  font-size: clamp(1.25rem, 1.5vw, 1.625rem);
+  font-weight: 340;
+  font-stretch: 108%;
+  line-height: 1.15;
+  letter-spacing: -0.014em;
+}
+
+@utility type-wordmark {
+  font-size: 1.125rem;
+  font-weight: 520;
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+@utility px-gutter {
+  padding-inline: var(--gutter);
+}
+
+/* ---------------------------------------------------------------------------
+   Glass pane: an interface window placed in the room.
+   The blur reads whatever is painted behind it, up to the nearest ancestor with
+   opacity < 1, filter, mask or clip-path: never put one of those on a parent.
+   --------------------------------------------------------------------------- */
+
+@utility glass-pane {
+  --glass-blur: 30px;
+  /* Smoked glass, so secondary text keeps AA contrast whatever lies behind. */
+  --ink-muted: color-mix(in oklab, var(--color-mineral) 76%, transparent);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background-color: color-mix(in oklab, var(--color-smoke) 30%, transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.2) brightness(0.78);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--color-mineral) 16%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--color-smoke) 45%, transparent);
+
+  @media (pointer: coarse) {
+    --glass-blur: 20px;
+  }
+
+  /* Edge of the plate: bright on the side facing the light, a trace of the
+     anti-reflective coating on the opposite corner. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      128deg,
+      color-mix(in oklab, var(--color-mineral) 44%, transparent),
+      color-mix(in oklab, var(--color-mineral) 7%, transparent) 34%,
+      color-mix(in oklab, var(--color-mineral) 4%, transparent) 70%,
+      color-mix(in oklab, var(--color-coat) 34%, transparent)
+    );
+    mask:
+      linear-gradient(black 0 0) content-box exclude,
+      linear-gradient(black 0 0);
+    pointer-events: none;
+  }
+}
+
+/* Small plate of the interface (scene 2): the same edge as the glass but no
+   blur, so it stays cheap. Dark enough for AA text over a lit street. */
+@utility glance-plate {
+  --ink-muted: color-mix(in oklab, var(--color-mineral) 74%, transparent);
+  position: relative;
+  border-radius: 1rem;
+  background-color: color-mix(in oklab, var(--color-smoke) 62%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-mineral) 12%, transparent);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      128deg,
+      color-mix(in oklab, var(--color-mineral) 30%, transparent),
+      color-mix(in oklab, var(--color-mineral) 6%, transparent) 40%,
+      color-mix(in oklab, var(--color-coat) 26%, transparent)
+    );
+    mask:
+      linear-gradient(black 0 0) content-box exclude,
+      linear-gradient(black 0 0);
+    pointer-events: none;
+  }
+}
+
+@utility grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+}
+
+/* ---------------------------------------------------------------------------
+   Intro gate — content is hidden only when JS is present, and never forever.
+   See the beforeInteractive script in app/layout.tsx.
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .js:not(.intro-fallback) [data-intro="pending"] {
+    visibility: hidden;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   SplitText line masks
+   --------------------------------------------------------------------------- */
+
+.split-line-mask {
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}

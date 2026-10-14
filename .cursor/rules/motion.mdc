@@ -1,0 +1,62 @@
+---
+description: Règles de mouvement (GSAP, ScrollTrigger, Lenis, easings, durées, chorégraphie, reduced-motion) pour toutes les animations du site.
+globs: src/**/*.ts,src/**/*.tsx,src/**/*.css
+alwaysApply: false
+---
+
+# Mouvement — Lume
+
+## Caractère
+- Lent, élégant, précis. Aucun rebond, aucun `elastic`/`back`/`bounce`, aucun overshoot.
+- Easings autorisés (tokens dans `src/lib/motion.ts` et en CSS `--ease-*`) :
+  - `EASE.out` = `expo.out` → entrées, révélations.
+  - `EASE.inOut` = `power3.inOut` → déplacements, transitions entre états.
+  - `EASE.soft` = `power2.out` → suivi du pointeur, micro-réactions.
+  - `"none"` uniquement pour le scrub et les vidéos pilotées au scroll.
+- Durées : 0.8 s à 1.6 s (`DURATION.short | base | long`). Staggers 0.06 à 0.14 s.
+
+## Chorégraphie
+- Chaque section a une entrée ET une sortie chorégraphiées.
+- Les transitions entre scènes sont continues (un objet, un masque, une caméra relie les deux scènes). Jamais un simple fondu.
+- Un seul moment orchestré par scène. Pas de fade-up générique répété sur chaque bloc.
+- Le mouvement non déclenché par l'utilisateur sert à guider le regard, pas à décorer.
+
+## Implémentation
+- Importer GSAP **uniquement** depuis `@/lib/gsap` (plugins enregistrés une fois, côté client).
+- Dans React : `useGSAP(() => {...}, { scope: ref })`, sélecteurs toujours scopés ; callbacks d'événements via `contextSafe`.
+- ScrollTrigger : le placer sur la timeline racine, jamais sur un tween enfant. Pas de `markers` en prod.
+- Créer les ScrollTriggers dans l'ordre de la page ; sinon `refreshPriority` (plus haut = rafraîchi plus tôt).
+- Lenis est branché sur `gsap.ticker` (un seul rAF) dans `SmoothScroll`. Pour défiler par code : `useLenis()?.scrollTo(...)`.
+- Animer `transform`/`opacity`/`clip-path` uniquement. Pas de `filter: blur` animé sur de grandes surfaces, pas de propriétés de layout.
+- Suivi du pointeur : `gsap.quickTo`, désactivé sur `(pointer: coarse)`.
+- Vidéo au scroll : `ease: "none"`, `scrub` numérique (0.5–1), mise à jour de `currentTime` seulement si la vidéo est prête.
+
+## Séquences (plusieurs scènes en un seul plan)
+- Quand deux scènes forment un plan continu, un composant de séquence les orchestre (modèle : `src/sections/Prologue.tsx`, qui reçoit `<Hero />` et `<LensPassage />` en `children`). Chaque scène reste un composant autonome et lisible sans la séquence.
+- Toute scène à étage collant (séquence ou scène seule comme `FloatingWindows`) appelle `holdCinematic()` (`src/lib/cinematic.ts`) dans `gsap.matchMedia()` sous `MOTION_OK_QUERY`, et relâche au nettoyage : la classe `cinematic` sur `<html>` est comptée, plusieurs scènes la tiennent sans se la retirer. Le layout collant / superposé s'écrit avec la variante Tailwind `cinematic:` (`cinematic:sticky`, `cinematic:-mt-[100svh]`…) : sans JS ou en reduced-motion, les scènes reviennent au flux normal.
+- La classe est posée avant le premier rendu par le script inline du layout (même condition `MOTION_OK_QUERY`) : la page a sa hauteur finale dès le HTML, une position de scroll restaurée au rechargement retombe dans la bonne scène. Le retrait est différé d'une microtâche : un remontage immédiat (Strict Mode, Fast Refresh) ne raccourcit jamais la page. Le layout collant reste du CSS pur (`sticky`, jamais `pin` GSAP), sinon la hauteur changerait après hydratation.
+- Raccord entre deux scènes distinctes qui partagent un objet (scène 3 → 4, la fenêtre de recette) : la suivante chevauche la précédente d'un écran (`cinematic:-mt-[max(100svh,38rem)]`), l'étage de la précédente passe au-dessus (`cinematic:z-10`) et se cache quand il se détache (ScrollTrigger `start: () => \`bottom top+=${stage.offsetHeight}\``, `visibility`) ; la suivante montre sa propre copie de l'objet à partir de son `top top`. Les deux images doivent être identiques au pixel : mesurer avec `getBoundingClientRect()` sur des éléments sans transform (fantôme de position, étage), jamais `offsetLeft`/`offsetTop` qui arrondissent.
+- Une seule timeline scrubée par séquence (`scrub` 0.6), unités 0–10 commentées en tête du composant. Les états hors timeline (caméra, masques calculés) sont rendus dans `onUpdate` / `onRefresh`.
+- Toute géométrie mesurée (positions dans la page) est recalculée par `ResizeObserver` en plus de `onRefresh` : un changement de police déplace le layout sans déclencher de refresh.
+- Caméra sur un objet SVG : animer le `viewBox` (net à tout zoom), jamais `scale` sur un SVG détaillé. Les masques qui suivent l'objet sont des `clip-path: path(evenodd, …)` recalculés à partir de `glasses-geometry.ts`. Un masque qui part d'un élément HTML (la pièce qui s'ouvre depuis la fenêtre de recette) est un `clip-path: inset(… round r)` calculé depuis sa position mesurée ; cet élément ne suit pas le pointeur (`depth={0}`).
+- Une scène qui sort en cours de séquence se termine sur la surface de la scène suivante (pas de bord visible quand l'étage collant se détache).
+- Un élément qui en anime un autre déjà animé à l'intro passe par un wrapper dédié (`.hero-copy`, `.hero-shadow-wrap`) : jamais deux timelines sur la même propriété du même élément.
+
+## Fenêtres de verre (`glass-pane`)
+- Le flou lit ce qui est peint derrière la fenêtre jusqu'au premier ancêtre qui a `opacity` < 1, `filter`, `mask`, `clip-path`, `mix-blend-mode` ou `backdrop-filter`. Fondus et masques se posent donc sur `.pane` lui-même ; ses parents (`.pane-float`, groupes) ne reçoivent que des transforms.
+- Ne jamais animer le rayon du flou. Le décor derrière peut bouger (parallaxe, dérive lente), c'est ce qui fait lire le verre.
+
+## Fenêtres à déplacer (`Draggable`, scène 4)
+- Une position est une fraction du décor (la cuisine, boîte 16:10 qui couvre l'étage), jamais des px : la fenêtre reste au même endroit de la pièce quel que soit l'écran et la caméra. Au lâcher, le déplacement est reporté dans `left`/`top` en % et `x`/`y` reviennent à 0.
+- Zone autorisée = ce que l'écran montre du décor caméra au repos, moins 12 px de marge et 80 px sous le header. Glisser, flèches du clavier et positions sauvegardées passent par la même zone (`onScreen`) ; une position voulue est gardée à part de sa position affichée, pour qu'un redimensionnement ne la perde pas.
+- `bounds` est un objet `{ left, top, width, height }` dans le repère du parent, muté par `measure` (Draggable le relit à chaque appui). Draggable y ramène sa cible dès sa création et à chaque `enable()` : mesurer avant `Draggable.create`, la cible déjà à sa taille de manipulation.
+- Activé seulement dans la plage libre de la timeline, jamais désactivé pendant un appui ou un lancer. Inertie seulement hors reduced-motion, sans dépassement (`overshootTolerance: 0`, `edgeResistance` 0.9).
+- Pointeur fin : toute la fenêtre se prend. Toucher : seulement la poignée (`touch-none`), le reste laisse défiler la page.
+- Clavier : flèches sur la poignée (Maj = plus loin), glissé 0.8 s `expo.out` (0 en reduced-motion), fenêtre passée devant (`Draggable.zIndex++`, comme au pointeur). Chaque pose est annoncée (`aria-live`) avec le nom de l'endroit le plus proche.
+
+## Header
+- Chaque élément du header lit le thème de ce qui est réellement peint sous lui (`document.elementsFromPoint`, échantillonné au scroll). Une scène qui superpose des calques doit donc rendre « transparents au test » les calques invisibles (`pointer-events: none`) et donner un `data-theme` aux surfaces visibles qui ne sont pas des sections (voile, monture : zone de test invisible `data-theme="dark"`).
+
+## Accessibilité du mouvement
+- `prefers-reduced-motion: reduce` : pas de Lenis, pas de scrub ni de parallaxe ; on affiche l'état final (ou une image fixe) directement. Utiliser `gsap.matchMedia()` ou `usePrefersReducedMotion()`.
+- Le contenu n'est jamais caché sans JS : l'état initial caché passe par `[data-intro="pending"]` (révélé automatiquement sans JS ou après délai).
