@@ -48,24 +48,23 @@ export function Band({ className = "" }: { className?: string }) {
     <svg viewBox="0 0 100 100" aria-hidden overflow="visible" className={`band ${className}`}>
       <defs>
         <linearGradient id={id("wall")} x1={50 - RO} y1="0" x2={50 + RO} y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0" style={stop("smoke")} />
-          <stop offset="0.07" style={stop("graphite")} />
-          <stop offset="0.17" style={stop("fog")} />
-          <stop offset="0.25" style={stop("mist", 0.9)} />
-          <stop offset="0.31" style={stop("fog")} />
-          <stop offset="0.44" style={stop("graphite")} />
-          <stop offset="0.56" style={stop("graphite")} />
-          <stop offset="0.66" style={stop("fog")} />
-          <stop offset="0.73" style={stop("mineral", 0.88)} />
-          <stop offset="0.79" style={stop("mist")} />
-          <stop offset="0.88" style={stop("fog")} />
-          <stop offset="0.95" style={stop("graphite")} />
-          <stop offset="1" style={stop("smoke")} />
+          <stop offset="0" style={stop("graphite")} />
+          <stop offset="0.07" style={stop("fog")} />
+          <stop offset="0.17" style={stop("mist")} />
+          <stop offset="0.25" style={stop("mineral")} />
+          <stop offset="0.32" style={stop("mist")} />
+          <stop offset="0.46" style={stop("fog")} />
+          <stop offset="0.57" style={stop("fog")} />
+          <stop offset="0.67" style={stop("mist")} />
+          <stop offset="0.74" style={stop("mineral")} />
+          <stop offset="0.8" style={stop("mist")} />
+          <stop offset="0.91" style={stop("fog")} />
+          <stop offset="1" style={stop("graphite")} />
         </linearGradient>
         <linearGradient id={id("wall-shade")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style={stop("mineral", 0.16)} />
-          <stop offset="0.35" style={stop("smoke", 0)} />
-          <stop offset="1" style={stop("smoke", 0.6)} />
+          <stop offset="0" style={stop("mineral", 0.18)} />
+          <stop offset="0.4" style={stop("smoke", 0)} />
+          <stop offset="1" style={stop("smoke", 0.42)} />
         </linearGradient>
         <linearGradient id={id("inside")} x1={50 - RI} y1="0" x2={50 + RI} y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0" style={stop("smoke")} />

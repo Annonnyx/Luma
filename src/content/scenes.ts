@@ -132,7 +132,7 @@ export const SCENES: Scene[] = [
     id: "bague",
     order: 6,
     theme: "dark",
-    title: "Tout passe par la bague.",
+    title: "Tout passe\npar la bague.",
     lead: "Un anneau de titane. Tournez-le pour faire défiler, touchez-le pour choisir, serrez-le pour revenir. Les mains restent libres.",
     scroll: "Collante sur 500 %, enchaînée à la scène 5 ; la lumière devient un objet, qui fait tourner les fenêtres",
     assets: [
@@ -154,9 +154,9 @@ export const SCENES: Scene[] = [
     id: "familier",
     order: 7,
     theme: "dark",
-    title: "Quelqu'un, quand il le faut.",
+    title: "Quelqu'un,\nquand il le faut.",
     lead: "Un petit compagnon se tient au bord de votre regard. Il ne parle que si vous hésitez, et se tait dès que vous savez.",
-    scroll: "Collante sur 200 %, enchaînée à la scène 6 ; le familier se tient au bord du regard",
+    scroll: "Collante sur 260 %, enchaînée à la scène 6 ; l'étincelle de la bague devient le compagnon, qui se tient au bord du regard et parle quand on s'arrête",
     assets: [
       {
         kind: "interactive",

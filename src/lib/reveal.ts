@@ -20,7 +20,7 @@ export type Reveal = {
 /** The trace is drawn at a quarter of the resolution; the shader makes its edge sharp. */
 const FIELD_SCALE = 0.25;
 /** Share of the trace lost per frame at 60 Hz: the trail lasts about half a second. */
-const DECAY = 0.03;
+const DECAY = 0.022;
 /** How long a dissolving trace keeps the loop running, ms. */
 const SETTLE_MS = 2000;
 
@@ -44,6 +44,35 @@ uniform vec2 uPx;
 in vec2 vUv;
 out vec4 outColor;
 
+// B-spline sampling of the field: bilinear would draw its saturated edge as
+// texel-sized facets.
+vec4 cubic(float v) {
+  vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
+  vec4 s = n * n * n;
+  float x = s.x;
+  float y = s.y - 4.0 * s.x;
+  float z = s.z - 4.0 * s.y + 6.0 * s.x;
+  return vec4(x, y, z, 6.0 - x - y - z) / 6.0;
+}
+float field(vec2 uv) {
+  vec2 size = vec2(textureSize(uField, 0));
+  vec2 p = uv * size - 0.5;
+  vec2 f = fract(p);
+  p -= f;
+  vec4 xc = cubic(f.x);
+  vec4 yc = cubic(f.y);
+  vec4 c = p.xxyy + vec2(-0.5, 1.5).xyxy;
+  vec4 s = vec4(xc.xz + xc.yw, yc.xz + yc.yw);
+  vec4 o = (c + vec4(xc.yw, yc.yw) / s) / size.xxyy;
+  float a = texture(uField, o.xz).r;
+  float b = texture(uField, o.yz).r;
+  float d = texture(uField, o.xw).r;
+  float e = texture(uField, o.yw).r;
+  float sx = s.x / (s.x + s.y);
+  float sy = s.z / (s.z + s.w);
+  return mix(mix(e, d, sx), mix(b, a, sx), sy);
+}
+
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
   vec2 i = floor(p);
@@ -56,7 +85,7 @@ void main() {
   // A slow wobble, so the edge reads as liquid rather than as circles.
   vec2 q = vUv / uPx / 170.0;
   vec2 warp = vec2(noise(q + uTime * 0.16), noise(q + 17.0 - uTime * 0.13)) - 0.5;
-  float a = texture(uField, vUv + warp * uPx * 28.0).r;
+  float a = field(vUv + warp * uPx * 28.0);
   float w = max(fwidth(a), 0.0008);
   float m = smoothstep(0.5 - w, 0.5 + w, a);
   if (m <= 0.001) discard;

@@ -25,7 +25,7 @@ const HESITATE_MS = 1600;
 const REST = { x: 0.8, y: 0.34 };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-const radius = (width: number) => (width < 768 ? 21 : 27);
+const radius = (width: number) => clamp(width * 0.02, 24, 40);
 
 /**
  * Scene 7. It starts on the last frame of scene 6: a coat spark at the centre.

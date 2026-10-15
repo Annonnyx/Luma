@@ -387,7 +387,8 @@ export function Ring() {
           <div className="grain absolute inset-0 opacity-[0.05] mix-blend-soft-light" />
         </div>
 
-        <div className="ring-deck absolute inset-0 touch-pan-y">
+        {/* Its own layer, so the order of the windows stays below the reveal. */}
+        <div className="ring-deck absolute inset-0 z-0 touch-pan-y">
           {DECK.map((Window, i) => (
             <Window
               key={WINDOW_NAMES[i]}

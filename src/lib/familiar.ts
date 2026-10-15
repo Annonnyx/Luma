@@ -52,6 +52,7 @@ export function createFamiliar(canvas: HTMLCanvasElement, radius: () => number):
   const coat = tokenRgb("coat");
   const mineral = tokenRgb("mineral");
   const smoke = tokenRgb("smoke");
+  const ink = tokenRgb("coat-ink");
   const rgba = (c: [number, number, number], a: number) =>
     `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
 
@@ -117,7 +118,8 @@ export function createFamiliar(canvas: HTMLCanvasElement, radius: () => number):
       // Longer along the way it goes, a tail behind, thinner across.
       let k = breath * (1 + stretch * 0.32 * along * along) / Math.sqrt(1 + stretch * 0.32);
       k += stretch * 1.05 * Math.max(0, -along) ** 3;
-      k += Math.sin(t * 3.1 + i * 1.9) * 0.03 + Math.sin(t * 5.3 + i * 0.7) * 0.018;
+      // Slow, wide wobble: jelly, never corners.
+      k += Math.sin(a * 2 + t * 1.4) * 0.022 + Math.sin(a * 3 - t * 1.9 + 1) * 0.012;
       let x = Math.cos(a) * r * k;
       let y = Math.sin(a) * r * k;
       // A drop sits heavier at the bottom.
@@ -149,25 +151,25 @@ export function createFamiliar(canvas: HTMLCanvasElement, radius: () => number):
     // Open: a dark upright oval with a catch light. Happy: a little arch.
     const o = open * (1 - happy);
     if (o > 0.04) {
-      ctx.fillStyle = rgba(smoke, 0.92);
+      ctx.fillStyle = rgba(smoke, 0.94);
       ctx.beginPath();
-      ctx.ellipse(x, y, r * 0.085, r * 0.15 * o, 0, 0, TAU);
+      ctx.ellipse(x, y, r * 0.1, r * 0.17 * o, 0, 0, TAU);
       ctx.fill();
       if (o > 0.5) {
-        ctx.fillStyle = rgba(mineral, 0.9 * (o - 0.5) * 2);
+        ctx.fillStyle = rgba(mineral, 0.95 * (o - 0.5) * 2);
         ctx.beginPath();
-        ctx.arc(x - r * 0.025, y - r * 0.06 * o, r * 0.028, 0, TAU);
+        ctx.arc(x - r * 0.03, y - r * 0.07 * o, r * 0.035, 0, TAU);
         ctx.fill();
       }
     }
-    const lineAlpha = Math.max(happy, 1 - open) * 0.9;
+    const lineAlpha = Math.max(happy, 1 - open) * 0.92;
     if (lineAlpha > 0.04) {
       ctx.strokeStyle = rgba(smoke, lineAlpha);
-      ctx.lineWidth = Math.max(1.2, r * 0.06);
+      ctx.lineWidth = Math.max(1.6, r * 0.075);
       ctx.lineCap = "round";
       ctx.beginPath();
-      if (happy >= 1 - open) ctx.arc(x, y + r * 0.04, r * 0.085, Math.PI * 1.15, Math.PI * 1.85);
-      else ctx.arc(x, y - r * 0.03, r * 0.085, Math.PI * 0.15, Math.PI * 0.85);
+      if (happy >= 1 - open) ctx.arc(x, y + r * 0.05, r * 0.1, Math.PI * 1.12, Math.PI * 1.88);
+      else ctx.arc(x, y - r * 0.03, r * 0.1, Math.PI * 0.15, Math.PI * 0.85);
       ctx.stroke();
     }
   };
@@ -244,13 +246,14 @@ export function createFamiliar(canvas: HTMLCanvasElement, radius: () => number):
     const y = body.y + bob;
 
     // Its light on the air around it
-    const halo = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3.6);
+    const halo = ctx.createRadialGradient(x, y, r * 0.5, x, y, r * 4.2);
     const pulse = 0.85 + Math.sin(t * 2.1) * 0.15;
-    halo.addColorStop(0, rgba(coat, 0.2 * pulse));
-    halo.addColorStop(0.4, rgba(coat, 0.07 * pulse));
+    halo.addColorStop(0, rgba(coat, 0.3 * pulse));
+    halo.addColorStop(0.3, rgba(coat, 0.11 * pulse));
+    halo.addColorStop(0.65, rgba(coat, 0.03 * pulse));
     halo.addColorStop(1, rgba(coat, 0));
     ctx.fillStyle = halo;
-    ctx.fillRect(x - r * 3.6, y - r * 3.6, r * 7.2, r * 7.2);
+    ctx.fillRect(x - r * 4.2, y - r * 4.2, r * 8.4, r * 8.4);
 
     for (const m of motes) {
       const life = 1 - m.age / m.life;
@@ -262,29 +265,38 @@ export function createFamiliar(canvas: HTMLCanvasElement, radius: () => number):
 
     // The body: light inside, a little denser at the edge
     outline(x, y, r, now);
-    const glow = ctx.createRadialGradient(x - r * 0.28, y - r * 0.36, r * 0.05, x, y, r * 1.25);
-    glow.addColorStop(0, rgba(mineral, 0.98));
-    glow.addColorStop(0.42, rgba(coat, 0.96));
-    glow.addColorStop(0.85, rgba(coat, 0.78));
-    glow.addColorStop(1, rgba(coat, 0.5));
+    const glow = ctx.createRadialGradient(x - r * 0.3, y - r * 0.38, r * 0.05, x + r * 0.08, y + r * 0.1, r * 1.08);
+    glow.addColorStop(0, rgba(mineral, 1));
+    glow.addColorStop(0.3, rgba(coat, 1));
+    glow.addColorStop(0.68, rgba(coat, 0.96));
+    glow.addColorStop(0.9, rgba(ink, 0.5));
+    glow.addColorStop(1, rgba(ink, 0.72));
     ctx.fillStyle = glow;
     ctx.fill();
     ctx.save();
     ctx.clip();
-    // Light caught along the top edge, shade at the bottom
-    const rim = ctx.createLinearGradient(x, y - r, x, y + r);
-    rim.addColorStop(0, rgba(mineral, 0.32));
-    rim.addColorStop(0.35, rgba(mineral, 0));
-    rim.addColorStop(0.8, rgba(smoke, 0));
-    rim.addColorStop(1, rgba(smoke, 0.16));
-    ctx.fillStyle = rim;
+    // Shade low on one side, then light bounced back up into the bottom edge
+    const shade = ctx.createRadialGradient(x + r * 0.35, y + r * 0.55, 0, x + r * 0.35, y + r * 0.55, r * 1.1);
+    shade.addColorStop(0, rgba(ink, 0.32));
+    shade.addColorStop(1, rgba(ink, 0));
+    ctx.fillStyle = shade;
     ctx.fillRect(x - r * 2, y - r * 2, r * 4, r * 4);
+    const bounceLight = ctx.createLinearGradient(x, y + r * 0.55, x, y + r * 1.15);
+    bounceLight.addColorStop(0, rgba(mineral, 0));
+    bounceLight.addColorStop(1, rgba(mineral, 0.38));
+    ctx.strokeStyle = bounceLight;
+    ctx.lineWidth = r * 0.16;
+    ctx.stroke();
     ctx.restore();
 
-    // Specular glint
-    ctx.fillStyle = rgba(mineral, 0.85);
+    // Specular glint, and a smaller one beside it
+    ctx.fillStyle = rgba(mineral, 0.92);
     ctx.beginPath();
-    ctx.ellipse(x - r * 0.4, y - r * 0.46, r * 0.15, r * 0.085, -0.6, 0, TAU);
+    ctx.ellipse(x - r * 0.42, y - r * 0.44, r * 0.16, r * 0.09, -0.65, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = rgba(mineral, 0.6);
+    ctx.beginPath();
+    ctx.arc(x - r * 0.18, y - r * 0.62, r * 0.045, 0, TAU);
     ctx.fill();
 
     // The face follows the gaze, and lags a touch behind fast moves
@@ -293,6 +305,15 @@ export function createFamiliar(canvas: HTMLCanvasElement, radius: () => number):
     const fx = x + (look.x * 0.24 - lagX) * r;
     const fy = y + (look.y * 0.16 - 0.02 - lagY + bounce.v * 0.3) * r;
     const open = shape.awake * blinkAmount(now);
+    const blush = 0.12 + shape.happy * 0.2;
+    if (shape.awake > 0.3) {
+      ctx.fillStyle = rgba(ink, blush * shape.awake);
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(fx + side * r * 0.42, fy + r * 0.2, r * 0.12, r * 0.065, 0, 0, TAU);
+        ctx.fill();
+      }
+    }
     eye(fx - r * 0.27, fy, r, open, shape.happy);
     eye(fx + r * 0.27, fy, r, open, shape.happy);
 
